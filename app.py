@@ -1,4 +1,4 @@
-# Arquivo: app.py (Versão Final de Produção)
+# Arquivo: app.py (Versão 5.1 - Correção para Mobile)
 
 import streamlit as st
 import pandas as pd
@@ -6,7 +6,7 @@ import joblib
 import numpy as np
 
 # --- CONFIGURAÇÃO DA PÁGINA ---
-st.set_page_config(page_title="Previsor de Partidas", page_icon="⚽", layout="wide")
+st.set_page_config(page_title="Previsor de Partidas v5.1", page_icon="⚽", layout="wide")
 
 # --- FUNÇÕES DE LÓGICA DO MODELO ---
 
@@ -30,20 +30,17 @@ def calcular_stats_recentes(time, data_partida, df_historico):
     """ Calcula as stats de forma recente para um único time. """
     df_time = df_historico[((df_historico['HomeTeam'] == time) | (df_historico['AwayTeam'] == time)) & (df_historico['Date'] < data_partida)]
     
-    if len(df_time) == 0:
-        return 0, 0, 0
+    if len(df_time) < 1: return 0, 0, 0
 
     df_time = df_time.tail(10) 
 
     gols_feitos, gols_sofridos, pontos = [], [], []
     for _, row in df_time.iterrows():
         if row['HomeTeam'] == time:
-            gols_feitos.append(row['FTHG'])
-            gols_sofridos.append(row['FTAG'])
+            gols_feitos.append(row['FTHG']); gols_sofridos.append(row['FTAG'])
             pontos.append(3 if row['FTR'] == 'H' else (1 if row['FTR'] == 'D' else 0))
-        else: # Away team
-            gols_feitos.append(row['FTAG'])
-            gols_sofridos.append(row['FTHG'])
+        else:
+            gols_feitos.append(row['FTAG']); gols_sofridos.append(row['FTHG'])
             pontos.append(3 if row['FTR'] == 'A' else (1 if row['FTR'] == 'D' else 0))
     
     media_gf = np.mean(gols_feitos) if gols_feitos else 0
@@ -56,10 +53,10 @@ def calcular_stats_recentes(time, data_partida, df_historico):
 model, model_columns, le, df_historico, lista_times = carregar_ativos()
 
 if model is None:
-    st.error("ERRO CRÍTICO: Arquivos de modelo (.pkl) ou de dados (.csv) não encontrados. Execute o script 'treinar_modelo_campeao.py' primeiro.")
+    st.error("ERRO CRÍTICO: Arquivos de modelo (.pkl) ou de dados (.csv) não encontrados. Execute os scripts de treinamento e padronização primeiro.")
     st.stop()
 
-st.title('🏆 Previsor de Partidas de Futebol')
+st.title('🏆 Previsor de Partidas - Mundial de Clubes de Futebol')
 st.markdown("### Previsões para o Mundial de Clubes em Campo Neutro")
 
 col1, col2 = st.columns(2)
@@ -99,14 +96,10 @@ if st.button('Fazer Previsão', type="primary", use_container_width=True):
                 }
                 
                 input_df = pd.DataFrame([data])
-                # One-Hot Encoding manual
                 for col in model_columns:
-                    if col not in input_df.columns:
-                        input_df[col] = False
-                
+                    if col not in input_df.columns: input_df[col] = False
                 if 'HomeTeam_' + home in input_df.columns: input_df['HomeTeam_' + home] = True
                 if 'AwayTeam_' + away in input_df.columns: input_df['AwayTeam_' + away] = True
-                
                 return input_df.reindex(columns=model_columns, fill_value=False)
 
             input1 = preparar_input(time_A, time_B, forma_A, gf_A, gs_A, forma_B, gf_B, gs_B)
@@ -115,9 +108,9 @@ if st.button('Fazer Previsão', type="primary", use_container_width=True):
             prob_2 = model.predict_proba(input2)
 
             map_classes = {classe: i for i, classe in enumerate(le.classes_)}
-            prob_A_vence = np.mean([prob_1[0][map_classes['H']], prob_2[0][map_classes['A']]])
-            prob_B_vence = np.mean([prob_1[0][map_classes['A']], prob_2[0][map_classes['H']]])
-            prob_empate = np.mean([prob_1[0][map_classes['D']], prob_2[0][map_classes['D']]])
+            prob_A_vence = np.mean([prob_1[0][map_classes.get('H', 0)], prob_2[0][map_classes.get('A', 1)]])
+            prob_B_vence = np.mean([prob_1[0][map_classes.get('A', 1)], prob_2[0][map_classes.get('H', 0)]])
+            prob_empate = np.mean([prob_1[0][map_classes.get('D', 2)], prob_2[0][map_classes.get('D', 2)]])
             
             soma_probs = prob_A_vence + prob_B_vence + prob_empate
             prob_A_vence /= soma_probs
@@ -127,12 +120,17 @@ if st.button('Fazer Previsão', type="primary", use_container_width=True):
             st.markdown("---")
             st.subheader(f'Previsão para: {time_A} vs {time_B}')
             
+            # --- MUDANÇA AQUI: SIMPLIFICANDO A EXIBIÇÃO DO RESULTADO ---
+            resultado_texto = ""
             if prob_A_vence > prob_B_vence and prob_A_vence > prob_empate:
-                st.success(f"🏆 Resultado Mais Provável: Vitória do {time_A}!")
+                resultado_texto = f"Vitória do {time_A}"
+                st.success(f"🏆 Resultado Mais Provável: {resultado_texto}!")
             elif prob_B_vence > prob_A_vence and prob_B_vence > prob_empate:
-                st.success(f"🏆 Resultado Mais Provável: Vitória do {time_B}!")
+                resultado_texto = f"Vitória do {time_B}"
+                st.success(f"🏆 Resultado Mais Provável: {resultado_texto}!")
             else:
-                st.warning(f"⚖️ Resultado Mais Provável: Empate!")
+                resultado_texto = "Empate"
+                st.warning(f"⚖️ Resultado Mais Provável: {resultado_texto}!")
 
             st.write("---")
             st.subheader('Probabilidades da Partida')
