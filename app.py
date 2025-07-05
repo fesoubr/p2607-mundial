@@ -55,7 +55,7 @@ if model is None:
     st.stop()
 
 st.title('🥇 Previsor de Partidas - Copa do Mundo de Clubes de Futebol')
-st.markdown("### Previsões para o  Copa do Mundo de Clubes 2025 - Atualizado em 02/07/2025"
+st.markdown("### Previsões para o  Copa do Mundo de Clubes 2025 - Atualizado em 02/07/2025")
 
 col1, col2 = st.columns(2)
 with col1:
