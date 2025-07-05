@@ -54,8 +54,8 @@ if model is None:
     st.error("ERRO CRÍTICO: Arquivos de modelo (.pkl) ou de dados (.csv) não encontrados. Execute o script 'treinar_modelo_final.py' primeiro.")
     st.stop()
 
-st.title('🥇 Previsor de Partidas - Mundial de Clubes de Futebol')
-st.markdown("### Previsões para o Mundial de Clubes da FIFA 2025 - Atualizado em 02/07/2025"
+st.title('🥇 Previsor de Partidas - Copa do Mundo de Clubes de Futebol')
+st.markdown("### Previsões para o  Copa do Mundo de Clubes 2025 - Atualizado em 02/07/2025"
 
 col1, col2 = st.columns(2)
 with col1:
